@@ -1,0 +1,6 @@
+dependencies {
+
+    runtime project(":imgate-agent")
+    compile('org.apache.commons:commons-email')
+
+}

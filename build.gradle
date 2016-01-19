@@ -41,6 +41,7 @@ subprojects {
 			dependency 'io.springfox:springfox-swagger2:2.2.2'
 			dependency 'io.springfox:springfox-swagger-ui:2.2.2'
 			dependency 'javax.mail:mail:1.4'
+			dependency 'org.apache.commons:commons-email:1.4'
 		}
 	}
 }
