@@ -1,0 +1,27 @@
+apply plugin: 'spring-boot'
+
+configurations {
+    compile.exclude module: "spring-boot-starter-tomcat"
+}
+
+dependencies {
+    compile("org.springframework.boot:spring-boot-starter-web")
+    testCompile("org.springframework.boot:spring-boot-starter-test")
+    runtime("org.springframework.boot:spring-boot-devtools")
+    compile("org.springframework.boot:spring-boot-starter-actuator")
+    compile("org.springframework.boot:spring-boot-starter-jetty")
+    compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("de.flapdoodle.embed:de.flapdoodle.embed.mongo")
+    compile("org.springframework.boot:spring-boot-starter-hateoas")
+    compile("io.springfox:springfox-swagger2")
+    compile("io.springfox:springfox-swagger-ui")
+}
+
+springBoot {
+    executable = true
+}
+
+bootRun {
+    addResources = true
+}
+

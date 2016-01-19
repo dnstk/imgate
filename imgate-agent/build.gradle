@@ -1,0 +1,8 @@
+dependencies {
+
+    provided("javax.mail:mail")
+
+}
+
+sourceCompatibility = 1.6
+

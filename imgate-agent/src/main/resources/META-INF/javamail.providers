@@ -1,0 +1,1 @@
+protocol=smtp; type=transport; class=tk.dnstk.imgate.agent.smtp.SMTPGateTransport; vendor=SMTP Gate;
