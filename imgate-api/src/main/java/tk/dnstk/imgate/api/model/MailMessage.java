@@ -1,14 +1,56 @@
 package tk.dnstk.imgate.api.model;
 
+import java.util.Date;
+import org.springframework.data.annotation.Id;
+
 public class MailMessage {
 
+    private String accountId;
+
     private String agentId;
+
+    @Id
+    private String messageId;
 
     private String subject;
 
     private String body;
 
     private boolean htmlMessage;
+
+    private Date createdDate;
+
+    private String[] fromAddress;
+
+    private String[] toAddress;
+
+    private String[] ccAddress;
+
+    private String[] bccAddress;
+
+    public Date getCreatedDate() {
+        return createdDate;
+    }
+
+    public void setCreatedDate(Date createdDate) {
+        this.createdDate = createdDate;
+    }
+
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
+    }
 
     public String getAgentId() {
         return agentId;
@@ -73,13 +115,5 @@ public class MailMessage {
     public void setBccAddress(String[] bccAddress) {
         this.bccAddress = bccAddress;
     }
-
-    private String[] fromAddress;
-
-    private String[] toAddress;
-
-    private String[] ccAddress;
-
-    private String[] bccAddress;
 
 }
