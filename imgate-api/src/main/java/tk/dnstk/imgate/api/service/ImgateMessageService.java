@@ -2,6 +2,7 @@ package tk.dnstk.imgate.api.service;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Required;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.validation.annotation.Validated;
@@ -44,6 +45,7 @@ public class ImgateMessageService {
     public Resource<MailMessage> addMailMessage(@PathVariable("accountId") String accountId,
                                                 @Validated @RequestBody MailMessage message) {
         message.setAccountId(accountId);
+        message.setMessageId(null);
         message.setCreatedDate(new Date());
         MailMessage result = messageRepo.save(message);
         return new Resource<>(result);

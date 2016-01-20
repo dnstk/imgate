@@ -2,7 +2,10 @@ package tk.dnstk.imgate.api.model;
 
 import java.util.Date;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document
 public class MailMessage {
 
     private String accountId;
@@ -18,6 +21,7 @@ public class MailMessage {
 
     private boolean htmlMessage;
 
+    @Indexed
     private Date createdDate;
 
     private String[] fromAddress;
