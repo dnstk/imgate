@@ -2,7 +2,6 @@ package tk.dnstk.imgate.api.service;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Required;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
 import org.springframework.validation.annotation.Validated;
@@ -30,19 +29,19 @@ public class ImgateMessageService {
     }
 
     @RequestMapping(method = RequestMethod.GET, path="")
-    public Resources<MailMessage> getmessages(@PathVariable("accountId") String accountId) {
+    public Resources<MailMessage> getMessages(@PathVariable("accountId") String accountId) {
         List<MailMessage> messages = messageRepo.findByAccountId(accountId).orElseThrow(() -> new ObjectNotFoundException(accountId));
         return new Resources<>(messages);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path="/pop50")
-    public Resources<MailMessage> getPop50messages(@PathVariable("accountId") String accountId) {
+    @RequestMapping(method = RequestMethod.GET, path="/recent50")
+    public Resources<MailMessage> getRecent50Messages(@PathVariable("accountId") String accountId) {
         List<MailMessage> messages = messageRepo.findFirst50ByAccountIdOrderByCreatedDateDesc(accountId).orElseThrow(() -> new ObjectNotFoundException(accountId));
         return new Resources<>(messages);
     }
 
     @RequestMapping(method = RequestMethod.POST, path="")
-    public Resource<MailMessage> addMailMessage(@PathVariable("accountId") String accountId,
+    public Resource<MailMessage> addMessage(@PathVariable("accountId") String accountId,
                                                 @Validated @RequestBody MailMessage message) {
         message.setAccountId(accountId);
         message.setMessageId(null);

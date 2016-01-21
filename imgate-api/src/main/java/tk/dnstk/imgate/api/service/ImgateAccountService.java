@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import tk.dnstk.imgate.api.ObjectNotFoundException;
 import tk.dnstk.imgate.api.data.ImgateAccountRepository;
 import tk.dnstk.imgate.api.model.Account;
-import tk.dnstk.imgate.api.model.MailMessage;
 import tk.dnstk.imgate.api.model.Role;
 
 import java.util.Date;
@@ -37,7 +36,7 @@ public class ImgateAccountService {
         return new Resource<>(result);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path="/role/{role}")
+    @RequestMapping(method = RequestMethod.GET, path="/roles/{role}")
     public Resources<Account> getAccountsWithRole(@PathVariable("role") String role) {
         Role r = Role.valueOf(role);
         List<Account> result = accountRepo.findByRoleOrderByCreatedDateDesc(r).orElseThrow(() -> new ObjectNotFoundException("role"));
