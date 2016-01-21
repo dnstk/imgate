@@ -2,6 +2,7 @@ package tk.dnstk.imgate.api.security;
 
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.WebRequest;
+import tk.dnstk.imgate.api.InvalidAccessException;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -52,23 +53,46 @@ public class SecurityContext {
         }
     }
 
+    // quick method
+    public static String currentValue(SecurityValue value) {
+        String ret = getContext().get(value);
+        if (ret == null) {
+            throw new InvalidAccessException("No " + value + " found");
+        }
+        return ret;
+    }
+
     private void populate(WebRequest request) {
+        // get value from header
         SecurityValue[] list = SecurityValue.values();
         for (SecurityValue ap : list) {
             String value = resolveSecurityValue(request, ap);
             if (value != null) {
-                values.put(ap, value);
+                set(ap, value);
             }
         }
+        initializeContext();
+    }
+
+    private void initializeContext() {
+
     }
 
     private String resolveSecurityValue(WebRequest request, SecurityValue ap) {
-        // TODO
-        return null;
+        String headerName = ap.getHeaderName();
+        if (headerName != null) {
+            return request.getHeader(headerName);
+        } else {
+            return null;
+        }
     }
 
     public String get(SecurityValue ap) {
         return values.get(ap);
+    }
+
+    protected void set(SecurityValue ap, String value) {
+        values.put(ap, value);
     }
 
     void bind() {

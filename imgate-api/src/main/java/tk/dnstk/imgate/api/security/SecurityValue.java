@@ -7,10 +7,23 @@ public enum SecurityValue {
 
     AccountId,
 
-    UserId,
-
     AgentId,
 
-    Token
+    Token("X-Imgate-Token"),
 
+    Role;
+
+    private final String headerName;
+
+    private SecurityValue(String headerName) {
+        this.headerName = headerName;
+    }
+
+    private SecurityValue() {
+        this.headerName = null;
+    }
+
+    public String getHeaderName() {
+        return headerName;
+    }
 }

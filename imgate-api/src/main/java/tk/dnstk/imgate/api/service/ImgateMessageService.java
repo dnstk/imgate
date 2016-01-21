@@ -9,6 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import tk.dnstk.imgate.api.ObjectNotFoundException;
 import tk.dnstk.imgate.api.data.ImgateMessageRepository;
 import tk.dnstk.imgate.api.model.MailMessage;
+import tk.dnstk.imgate.api.security.AuthorizedOn;
+import tk.dnstk.imgate.api.security.Permission;
+import tk.dnstk.imgate.api.security.PermissionWith;
+import tk.dnstk.imgate.api.security.SecurityValue;
 
 import java.util.Date;
 import java.util.List;
@@ -21,28 +25,36 @@ public class ImgateMessageService {
     @Autowired
     private ImgateMessageRepository messageRepo;
 
-    @RequestMapping(method = RequestMethod.GET, path="/{messageId}")
-    public Resource<MailMessage> getMessage(@PathVariable("accountId") String accountId,
+    @PermissionWith(Permission.READ_MESSAGE)
+    @RequestMapping(method = RequestMethod.GET, path = "/{messageId}")
+    public Resource<MailMessage> getMessage(@AuthorizedOn(SecurityValue.AccountId)
+                                            @PathVariable("accountId") String accountId,
                                             @PathVariable("messageId") String messageId) {
         MailMessage message = messageRepo.findByMessageId(messageId).orElseThrow(() -> new ObjectNotFoundException(messageId));
         return new Resource<>(message);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path="")
-    public Resources<MailMessage> getMessages(@PathVariable("accountId") String accountId) {
+    @PermissionWith(Permission.READ_MESSAGE)
+    @RequestMapping(method = RequestMethod.GET, path = "")
+    public Resources<MailMessage> getMessages(@AuthorizedOn(SecurityValue.AccountId)
+                                              @PathVariable("accountId") String accountId) {
         List<MailMessage> messages = messageRepo.findByAccountId(accountId).orElseThrow(() -> new ObjectNotFoundException(accountId));
         return new Resources<>(messages);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path="/recent50")
-    public Resources<MailMessage> getRecent50Messages(@PathVariable("accountId") String accountId) {
+    @PermissionWith(Permission.READ_MESSAGE)
+    @RequestMapping(method = RequestMethod.GET, path = "/recent50")
+    public Resources<MailMessage> getRecent50Messages(@AuthorizedOn(SecurityValue.AccountId)
+                                                      @PathVariable("accountId") String accountId) {
         List<MailMessage> messages = messageRepo.findFirst50ByAccountIdOrderByCreatedDateDesc(accountId).orElseThrow(() -> new ObjectNotFoundException(accountId));
         return new Resources<>(messages);
     }
 
-    @RequestMapping(method = RequestMethod.POST, path="")
-    public Resource<MailMessage> addMessage(@PathVariable("accountId") String accountId,
-                                                @Validated @RequestBody MailMessage message) {
+    @PermissionWith(Permission.WRITE_MESSAGE)
+    @RequestMapping(method = RequestMethod.POST, path = "")
+    public Resource<MailMessage> addMessage(@AuthorizedOn(SecurityValue.AccountId)
+                                            @PathVariable("accountId") String accountId,
+                                            @Validated @RequestBody MailMessage message) {
         message.setAccountId(accountId);
         message.setMessageId(null);
         message.setCreatedDate(new Date());
