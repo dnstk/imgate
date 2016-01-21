@@ -4,6 +4,9 @@ package tk.dnstk.imgate.api.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import org.springframework.hateoas.VndErrors;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -29,7 +32,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/auth")
 @ControllerAdvice
-public class ImgateAuthService {
+@Order(80)
+public class ImgateAuthService implements CommandLineRunner {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ImgateAuthService.class);
 
@@ -47,8 +51,10 @@ public class ImgateAuthService {
     @Autowired
     private ImgateAgentService agentService;
 
-    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private Environment environment;
 
+    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @RequestMapping(method = RequestMethod.POST, path = "/tokens")
     public AccessToken createToken(@RequestParam("type") AccessType accessType,
@@ -112,11 +118,16 @@ public class ImgateAuthService {
         }
         // update grant access id
         access.setGrantAccessId(currentAccountId);
+        setAccess0(access);
+    }
+
+    private void setAccess0(@Validated @RequestBody Access access) {
         // encrypt password
         access.setAccessSecret(passwordEncoder.encode(access.getAccessSecret()));
         // save access object
-        accessRepo.save(access);
-        LOGGER.info("set access successful for {}({}) by account {}", accessId, accessType, currentAccountId);
+        access = accessRepo.save(access);
+        LOGGER.info("Save access successful for {}({}) by account {}", access.getAccessId(),
+                access.getAccessType(), access.getGrantAccessId());
     }
 
     // assume this is check account with agent
@@ -157,5 +168,22 @@ public class ImgateAuthService {
     VndErrors objectNotFoundExceptionHandler(ObjectNotFoundException ex) {
         // TODO "error" to be error code or request id for diagnostic
         return new VndErrors("error", ex.getMessage());
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        if (!Boolean.parseBoolean(environment.getProperty("imgate.admin.skip", "false"))) {
+            setupAdminAccess(environment.getProperty("imgate.admin.id", "admin"),
+                    environment.getProperty("imgate.admin.secret", "imgate"));
+        }
+    }
+
+    private void setupAdminAccess(String id, String secret) {
+        Access adminAccess = new Access();
+        adminAccess.setAccessId(id);
+        adminAccess.setAccessType(Access.AccessType.ACCOUNT);
+        adminAccess.setAccessSecret(secret);
+        adminAccess.setGrantAccessId(id);
+        setAccess0(adminAccess);
     }
 }
