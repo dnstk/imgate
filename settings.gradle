@@ -1,5 +1,5 @@
 rootProject.name = 'imgate'
 
-include ':imgate-agent'
-include ':imgate-api'
-include ':imgate-sample'
+include 'imgate-agent'
+include 'imgate-api'
+include 'imgate-sample'

@@ -1,9 +1,8 @@
 package tk.dnstk.imgate.api.security;
 
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.WebRequest;
 import tk.dnstk.imgate.api.InvalidAccessException;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -30,21 +29,35 @@ public class SecurityContext {
         }
     }
 
-    static SecurityContext createFromRequest(WebRequest request) {
-        Object attribute = request.getAttribute(ATTR_NAME, RequestAttributes.SCOPE_REQUEST);
+    public static void runInContext(Runnable runnable) {
+        if (context.get() == null) {
+            SecurityContext sc = new SecurityContext();
+            sc.bind();
+            try {
+                runnable.run();
+            } finally {
+                sc.unbind();
+            }
+        } else {
+            runnable.run();
+        }
+    }
+
+    static SecurityContext createFromRequest(HttpServletRequest request) {
+        Object attribute = request.getAttribute(ATTR_NAME);
         SecurityContext securityContext;
         if (attribute instanceof SecurityContext) {
             securityContext = (SecurityContext) attribute;
         } else {
             securityContext = new SecurityContext();
             securityContext.populate(request);
-            request.setAttribute(ATTR_NAME, securityContext, RequestAttributes.SCOPE_REQUEST);
+            request.setAttribute(ATTR_NAME, securityContext);
         }
         return securityContext;
     }
 
-    static SecurityContext getFromRequest(WebRequest request) {
-        Object attribute = request.getAttribute(ATTR_NAME, RequestAttributes.SCOPE_REQUEST);
+    static SecurityContext getFromRequest(HttpServletRequest request) {
+        Object attribute = request.getAttribute(ATTR_NAME);
         if (attribute instanceof SecurityContext) {
             return (SecurityContext) attribute;
         } else {
@@ -62,7 +75,7 @@ public class SecurityContext {
         return ret;
     }
 
-    private void populate(WebRequest request) {
+    private void populate(HttpServletRequest request) {
         // get value from header
         SecurityValue[] list = SecurityValue.values();
         for (SecurityValue ap : list) {
@@ -71,14 +84,9 @@ public class SecurityContext {
                 set(ap, value);
             }
         }
-        initializeContext();
     }
 
-    private void initializeContext() {
-
-    }
-
-    private String resolveSecurityValue(WebRequest request, SecurityValue ap) {
+    private String resolveSecurityValue(HttpServletRequest request, SecurityValue ap) {
         String headerName = ap.getHeaderName();
         if (headerName != null) {
             return request.getHeader(headerName);
@@ -91,7 +99,7 @@ public class SecurityContext {
         return values.get(ap);
     }
 
-    protected void set(SecurityValue ap, String value) {
+    public void set(SecurityValue ap, String value) {
         values.put(ap, value);
     }
 

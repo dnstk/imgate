@@ -9,7 +9,7 @@ import java.util.Date;
 public class AccessToken {
 
     @Id
-    private String token;
+    private String tokenId;
 
     private Date createDate;
 
@@ -19,12 +19,16 @@ public class AccessToken {
 
     private String accessId;
 
-    public String getToken() {
-        return token;
+    private AccessType accessType;
+
+    private Role accessRole;
+
+    public String getTokenId() {
+        return tokenId;
     }
 
-    public void setTokenId(String token) {
-        this.token = token;
+    public void setTokenId(String tokenId) {
+        this.tokenId = tokenId;
     }
 
     public Date getCreateDate() {
@@ -57,5 +61,25 @@ public class AccessToken {
 
     public void setAccessId(String accessId) {
         this.accessId = accessId;
+    }
+
+    public AccessType getAccessType() {
+        return accessType;
+    }
+
+    public void setAccessType(AccessType accessType) {
+        this.accessType = accessType;
+    }
+
+    public Role getAccessRole() {
+        return accessRole;
+    }
+
+    public void setAccessRole(Role accessRole) {
+        this.accessRole = accessRole;
+    }
+
+    public enum AccessType {
+        ACCOUNT, AGENT
     }
 }

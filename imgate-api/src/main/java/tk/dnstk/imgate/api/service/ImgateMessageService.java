@@ -1,6 +1,7 @@
 package tk.dnstk.imgate.api.service;
 
 
+import io.swagger.annotations.ApiImplicitParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.Resource;
 import org.springframework.hateoas.Resources;
@@ -10,8 +11,7 @@ import tk.dnstk.imgate.api.ObjectNotFoundException;
 import tk.dnstk.imgate.api.data.ImgateMessageRepository;
 import tk.dnstk.imgate.api.model.MailMessage;
 import tk.dnstk.imgate.api.security.AuthorizedOn;
-import tk.dnstk.imgate.api.security.Permission;
-import tk.dnstk.imgate.api.security.PermissionWith;
+import tk.dnstk.imgate.api.security.SecurityContext;
 import tk.dnstk.imgate.api.security.SecurityValue;
 
 import java.util.Date;
@@ -25,7 +25,7 @@ public class ImgateMessageService {
     @Autowired
     private ImgateMessageRepository messageRepo;
 
-    @PermissionWith(Permission.READ_MESSAGE)
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.GET, path = "/{messageId}")
     public Resource<MailMessage> getMessage(@AuthorizedOn(SecurityValue.AccountId)
                                             @PathVariable("accountId") String accountId,
@@ -34,7 +34,7 @@ public class ImgateMessageService {
         return new Resource<>(message);
     }
 
-    @PermissionWith(Permission.READ_MESSAGE)
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.GET, path = "")
     public Resources<MailMessage> getMessages(@AuthorizedOn(SecurityValue.AccountId)
                                               @PathVariable("accountId") String accountId) {
@@ -42,7 +42,7 @@ public class ImgateMessageService {
         return new Resources<>(messages);
     }
 
-    @PermissionWith(Permission.READ_MESSAGE)
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.GET, path = "/recent50")
     public Resources<MailMessage> getRecent50Messages(@AuthorizedOn(SecurityValue.AccountId)
                                                       @PathVariable("accountId") String accountId) {
@@ -50,12 +50,13 @@ public class ImgateMessageService {
         return new Resources<>(messages);
     }
 
-    @PermissionWith(Permission.WRITE_MESSAGE)
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.POST, path = "")
     public Resource<MailMessage> addMessage(@AuthorizedOn(SecurityValue.AccountId)
                                             @PathVariable("accountId") String accountId,
                                             @Validated @RequestBody MailMessage message) {
         message.setAccountId(accountId);
+        message.setAgentId(SecurityContext.currentValue(SecurityValue.AgentId));
         message.setMessageId(null);
         message.setCreatedDate(new Date());
         MailMessage result = messageRepo.save(message);

@@ -1,14 +1,13 @@
 package tk.dnstk.imgate.api.service;
 
 
+import io.swagger.annotations.ApiImplicitParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
-import org.springframework.hateoas.VndErrors;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
@@ -16,16 +15,15 @@ import org.springframework.web.bind.annotation.*;
 import tk.dnstk.imgate.api.InvalidAccessException;
 import tk.dnstk.imgate.api.InvalidArgumentException;
 import tk.dnstk.imgate.api.ObjectNotFoundException;
-import tk.dnstk.imgate.api.data.ImgateAccessRepository;
+import tk.dnstk.imgate.api.RequireAccessException;
 import tk.dnstk.imgate.api.data.ImgateAccessTokenRepository;
-import tk.dnstk.imgate.api.model.Access;
-import tk.dnstk.imgate.api.model.Access.AccessType;
-import tk.dnstk.imgate.api.model.AccessRequest;
-import tk.dnstk.imgate.api.model.AccessToken;
-import tk.dnstk.imgate.api.model.Role;
+import tk.dnstk.imgate.api.model.*;
+import tk.dnstk.imgate.api.model.AccessToken.AccessType;
 import tk.dnstk.imgate.api.security.SecurityContext;
+import tk.dnstk.imgate.api.security.SecurityContextInitializer;
 import tk.dnstk.imgate.api.security.SecurityValue;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.UUID;
 
@@ -33,7 +31,7 @@ import java.util.UUID;
 @RequestMapping("/auth")
 @ControllerAdvice
 @Order(80)
-public class ImgateAuthService implements CommandLineRunner {
+public class ImgateAuthService implements CommandLineRunner, SecurityContextInitializer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ImgateAuthService.class);
 
@@ -41,9 +39,6 @@ public class ImgateAuthService implements CommandLineRunner {
 
     @Autowired
     private ImgateAccessTokenRepository tokenRepo;
-
-    @Autowired
-    private ImgateAccessRepository accessRepo;
 
     @Autowired
     private ImgateAccountService accountService;
@@ -57,133 +52,112 @@ public class ImgateAuthService implements CommandLineRunner {
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @RequestMapping(method = RequestMethod.POST, path = "/tokens")
-    public AccessToken createToken(@RequestParam("type") AccessType accessType,
-                                   @Validated @RequestBody AccessRequest accessRequest) {
-        String accountId = validateAccess(accessRequest.getAccessId(), accessType, accessRequest.getAccessSecret());
+    public AccessToken createToken(@Validated @RequestBody AccessRequest accessRequest) {
+        String accountId = validateAccess(accessRequest.getAccessId(), accessRequest.getAccessType(),
+                accessRequest.getAccessSecret());
         AccessToken accessToken = new AccessToken();
         accessToken.setAccessId(accessRequest.getAccessId());
         // without '-' in token id
-        accessToken.setTokenId(UUID.randomUUID().toString().replace("-",""));
+        accessToken.setTokenId(UUID.randomUUID().toString().replace("-", ""));
         accessToken.setCreateDate(new Date());
         accessToken.setExpireDate(new Date(System.currentTimeMillis() + EXPIRE_TIME));
         accessToken.setAccountId(accountId);
+        accessToken.setAccessType(accessRequest.getAccessType());
+        accessToken.setAccessRole(accountService.getAccount(accountId).getContent().getRole());
         return tokenRepo.save(accessToken);
     }
 
     private String validateAccess(String accessId, AccessType accessType, String accessSecret) {
-        Access access = accessRepo.findByAccessIdAndAccessType(accessId, accessType)
-                .orElseThrow(() -> new InvalidAccessException("No access found"));
-        if (!passwordEncoder.matches(accessSecret, access.getAccessSecret())) {
-            throw new InvalidAccessException("Invalid access");
-        }
         switch (accessType) {
             case ACCOUNT:
-                return access.getAccessId();
+                try {
+                    Account account = accountService.getAccount(accessId).getContent();
+                    if (!passwordEncoder.matches(accessSecret, account.getPassword())) {
+                        throw new InvalidAccessException("Invalid access");
+                    }
+                    return account.getAccountId();
+                } catch (ObjectNotFoundException e) {
+                    throw new InvalidAccessException("No access found");
+                }
             case AGENT:
-                return agentService.getAgent(access.getAccessId()).getContent().getAccountId();
+                try {
+                    Agent agent = agentService.getAgent(accessId).getContent();
+                    if (!passwordEncoder.matches(accessSecret, agent.getPassword())) {
+                        throw new InvalidAccessException("Invalid access");
+                    }
+                    return agent.getAccountId();
+                } catch (ObjectNotFoundException e) {
+                    throw new InvalidAccessException("No access found");
+                }
             default:
                 throw new InvalidArgumentException("invalid access type: " + accessType);
         }
     }
 
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.GET, path = "/tokens")
     public AccessToken getToken() {
         String tokenId = SecurityContext.currentValue(SecurityValue.Token);
-        AccessToken accessToken = tokenRepo.findOne(tokenId);
-        return accessToken;
+        return tokenRepo.findOne(tokenId);
     }
 
+    @ApiImplicitParam(name = SecurityValue.TOKEN_HEADER, paramType = "header", required = true)
     @RequestMapping(method = RequestMethod.DELETE, path = "/tokens")
     public void revokeToken() {
         String tokenId = SecurityContext.currentValue(SecurityValue.Token);
         tokenRepo.delete(tokenId);
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "/access")
-    public void setAccess(@Validated @RequestBody Access access) {
-        // valid grant permission
-        String currentAccountId = SecurityContext.currentValue(SecurityValue.AccountId);
-        String accessId = access.getAccessId();
-        AccessType accessType = access.getAccessType();
-        String roleStr = SecurityContext.currentValue(SecurityValue.Role);
-        Role role = Role.valueOf(roleStr);
-        switch (role) {
-            case ADMIN:
-                // admin can set any access (include self)
-                break;
-            case USER:
-                // user can only set their managed access (include self)
-                validateOwnership(currentAccountId, accessType, accessId);
-                break;
-        }
-        // update grant access id
-        access.setGrantAccessId(currentAccountId);
-        setAccess0(access);
-    }
-
-    private void setAccess0(@Validated @RequestBody Access access) {
-        // encrypt password
-        access.setAccessSecret(passwordEncoder.encode(access.getAccessSecret()));
-        // save access object
-        access = accessRepo.save(access);
-        LOGGER.info("Save access successful for {}({}) by account {}", access.getAccessId(),
-                access.getAccessType(), access.getGrantAccessId());
-    }
-
-    // assume this is check account with agent
-    private void validateOwnership(String currentId, AccessType accessType, String accessId) {
-        switch (accessType) {
-            case AGENT:
-                boolean hasOwnership = agentService.getAgentsByAccountId(currentId).getContent().stream()
-                        .filter(agent -> agent.getAccountId().equals(accessId))
-                        .findAny()
-                        .isPresent();
-                if (hasOwnership) {
-                    return;
-                }
-        }
-        throw new InvalidAccessException("No ownership for '" + accessType + "' on " + accessId);
-    }
-
-
-    @ResponseBody
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    VndErrors invalidAccessExceptionHandler(InvalidAccessException ex) {
-        // TODO "error" to be error code or request id for diagnostic
-        return new VndErrors("error", ex.getMessage());
-    }
-
-    @ResponseBody
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    VndErrors invalidArgumentExceptionHandler(InvalidArgumentException ex) {
-        // TODO "error" to be error code or request id for diagnostic
-        return new VndErrors("error", ex.getMessage());
-    }
-
-    @ResponseBody
-    @ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    VndErrors objectNotFoundExceptionHandler(ObjectNotFoundException ex) {
-        // TODO "error" to be error code or request id for diagnostic
-        return new VndErrors("error", ex.getMessage());
-    }
-
     @Override
     public void run(String... args) throws Exception {
         if (!Boolean.parseBoolean(environment.getProperty("imgate.admin.skip", "false"))) {
-            setupAdminAccess(environment.getProperty("imgate.admin.id", "admin"),
-                    environment.getProperty("imgate.admin.secret", "imgate"));
+            SecurityContext.runInContext(() -> {
+                setupAdminAccess(environment.getProperty("imgate.admin.id", "admin"),
+                        environment.getProperty("imgate.admin.secret", "imgate"));
+                setupDemoAgent(environment.getProperty("imgate.agent.id", "demo"),
+                        environment.getProperty("imgate.agent.secret", "demo"));
+            });
         }
     }
 
     private void setupAdminAccess(String id, String secret) {
-        Access adminAccess = new Access();
-        adminAccess.setAccessId(id);
-        adminAccess.setAccessType(Access.AccessType.ACCOUNT);
-        adminAccess.setAccessSecret(secret);
-        adminAccess.setGrantAccessId(id);
-        setAccess0(adminAccess);
+        SecurityContext.getContext().set(SecurityValue.AccountId, id);
+        Account adminAccount = new Account();
+        adminAccount.setAccountId(id);
+        adminAccount.setPassword(secret);
+        adminAccount.setRole(Role.ADMIN);
+        accountService.addAccount(adminAccount);
+        LOGGER.info("Save account successful for {}", id);
+    }
+
+    private void setupDemoAgent(String id, String secret) {
+        agentService.createAgentByAccount(SecurityContext.currentValue(SecurityValue.AccountId), id);
+        agentService.setAgentPassword(id, secret);
+        LOGGER.info("Save agent successful for {}", id);
+    }
+
+    @Override
+    public void initializeContext(SecurityContext context, HttpServletRequest request) {
+        String tokenId = context.get(SecurityValue.Token);
+        if (tokenId == null) {
+            return;
+        }
+        AccessToken accessToken = tokenRepo.findOne(tokenId);
+        if (accessToken == null) {
+            throw new RequireAccessException("Invalid access token");
+        }
+        if (accessToken.getExpireDate() != null && accessToken.getExpireDate().before(new Date())) {
+            throw new RequireAccessException("Expired access token, try request new access");
+        }
+        context.set(SecurityValue.AccountId, accessToken.getAccountId());
+        switch (accessToken.getAccessType()) {
+            case ACCOUNT:
+                context.set(SecurityValue.Role, String.valueOf(accessToken.getAccessRole()));
+                break;
+            case AGENT:
+                context.set(SecurityValue.AgentId, accessToken.getAccessId());
+                break;
+        }
+
     }
 }

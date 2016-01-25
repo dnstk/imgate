@@ -1,16 +1,11 @@
-package tk.dnstk.imgate.api.model;
+package tk.dnstk.imgate.agent.remote;
 
-import javax.validation.constraints.NotNull;
+import tk.dnstk.imgate.agent.com.eclipsesource.json.JsonObject;
 
-public class AccessRequest {
+class AgentAccess {
 
-    @NotNull
     private String accessId;
 
-    @NotNull
-    private AccessToken.AccessType accessType;
-
-    @NotNull
     private String accessSecret;
 
     public String getAccessId() {
@@ -29,11 +24,11 @@ public class AccessRequest {
         this.accessSecret = accessSecret;
     }
 
-    public AccessToken.AccessType getAccessType() {
-        return accessType;
-    }
-
-    public void setAccessType(AccessToken.AccessType accessType) {
-        this.accessType = accessType;
+    public String toJSON() {
+        JsonObject json = new JsonObject();
+        json.add("accessId", getAccessId());
+        json.add("accessSecret", getAccessSecret());
+        json.add("accessType", "AGENT");
+        return json.toString();
     }
 }

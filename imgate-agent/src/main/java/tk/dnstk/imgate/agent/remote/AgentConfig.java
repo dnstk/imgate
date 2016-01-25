@@ -6,7 +6,7 @@ public class AgentConfig {
 
     private String agentId;
 
-    private String agentKey;
+    private String agentSecret;
 
     public String getRemoteUri() {
         return remoteUri;
@@ -24,11 +24,11 @@ public class AgentConfig {
         this.agentId = agentId;
     }
 
-    public String getAgentKey() {
-        return agentKey;
+    public String getAgentSecret() {
+        return agentSecret;
     }
 
-    public void setAgentKey(String agentKey) {
-        this.agentKey = agentKey;
+    public void setAgentSecret(String agentSecret) {
+        this.agentSecret = agentSecret;
     }
 }

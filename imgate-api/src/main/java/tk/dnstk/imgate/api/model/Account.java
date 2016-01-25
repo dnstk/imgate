@@ -1,6 +1,5 @@
 package tk.dnstk.imgate.api.model;
 
-import com.sun.javafx.beans.IDProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -13,14 +12,14 @@ public class Account {
     @Id
     private String accountId;
 
-    private String userName;
-
     private String password;
 
     @Indexed
     private Date createdDate;
 
     private Role role;
+
+    private String createdAccountId;
 
     public Role getRole() {
         return role;
@@ -36,14 +35,6 @@ public class Account {
 
     public void setAccountId(String accountId) {
         this.accountId = accountId;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     public String getPassword() {
@@ -62,5 +53,11 @@ public class Account {
         this.createdDate = createdDate;
     }
 
+    public String getCreatedAccountId() {
+        return createdAccountId;
+    }
 
+    public void setCreatedAccountId(String createdAccountId) {
+        this.createdAccountId = createdAccountId;
+    }
 }

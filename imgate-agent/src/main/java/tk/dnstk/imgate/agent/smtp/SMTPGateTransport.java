@@ -25,10 +25,15 @@ public class SMTPGateTransport extends SMTPTransport {
     protected boolean protocolConnect(String arg0, int arg1, String arg2, String arg3) throws MessagingException {
         AgentConfig config = new AgentConfig();
         // TODO
-        config.setAgentId("agentId");
-        config.setAgentKey("agentKey");
+        config.setAgentId("demo");
+        config.setAgentSecret("demo");
         config.setRemoteUri("http://localhost:8080/imgate/api/");
         this.client = new ImgateRemoteClient(config);
+        try {
+            this.client.authenticate();
+        } catch (IOException e) {
+            throw new AuthenticationFailedException(e.getMessage());
+        }
         return true;
     }
 

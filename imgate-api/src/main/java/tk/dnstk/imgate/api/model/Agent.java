@@ -11,6 +11,8 @@ public class Agent {
     @Id
     private String agentId;
 
+    private String password;
+
     // under the account
     private String accountId;
 
@@ -38,5 +40,13 @@ public class Agent {
 
     public void setCreateDate(Date createDate) {
         this.createDate = createDate;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }

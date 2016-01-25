@@ -1,29 +1,24 @@
 package tk.dnstk.imgate.api.security;
 
-/**
- * Created by zfeng on 1/20/2016.
- */
 public enum SecurityValue {
 
     AccountId,
 
     AgentId,
 
-    Token("X-Imgate-Token"),
+    Token,
 
     Role;
 
-    private final String headerName;
-
-    private SecurityValue(String headerName) {
-        this.headerName = headerName;
-    }
-
-    private SecurityValue() {
-        this.headerName = null;
-    }
+    public static final String TOKEN_HEADER = "X-Imgate-Token";
 
     public String getHeaderName() {
-        return headerName;
+        switch (this) {
+            case Token:
+                return TOKEN_HEADER;
+            default:
+                return null;
+        }
+
     }
 }
